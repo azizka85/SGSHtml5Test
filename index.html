@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SGS Test HTML5 and JavaScript</title>
+  <style>
+    html, body {
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .head {
+      display: grid;
+      gap: .5rem;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+      margin: .5rem;
+    }    
+
+    .body {
+      display: flex;
+      justify-content: center;
+    }
+
+    .td {
+      text-align: right;
+      padding: .5rem;
+      min-width: 12rem;
+    }
+    
+    .title {
+      font-weight: bold;
+      text-align: right;
+      width: 6rem;
+      min-width: 6rem;
+    }
+  </style>
+  <script src="./utils/cookie.js"></script>
+  <script src="./utils/html.js"></script>
+  <script src="./services/data-service.js"></script>
+  <script src="./services/data-storage-service.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="head">
+      <select id="city-select" onchange="citySelectChanged()">
+        <option hidden>Choose city</option>
+      </select>
+      <select id="shop-select" onchange="shopSelectChanged()">
+        <option hidden>Choose shop</option>
+      </select>
+      <select id="employee-select" onchange="employeeSelectChanged()">
+        <option hidden>Choose Employee</option>
+      </select>
+      <select id="team-select" onchange="teamSelectChanged()">
+        <option hidden>Choose team</option>
+      </select>
+      <select id="shift-select" onchange="shiftSelectChanged()">
+        <option hidden>Choose shift</option>
+      </select>
+    </div>
+    <div class="body">
+      <table border="1" style="border-collapse: collapse;">
+        <tr>
+          <td class="td title">City:</td>
+          <td class="td" id="city-content"></td>
+        </tr>
+        <tr>
+          <td class="td title">Shop:</td>
+          <td class="td" id="shop-content"></td>
+        </tr>
+        <tr>
+          <td class="td title">Employee:</td>
+          <td class="td" id="employee-content"></td>
+        </tr>
+        <tr>
+          <td class="td title">Team:</td>
+          <td class="td" id="team-content"></td>
+        </tr>
+        <tr>
+          <td class="td title">Shift:</td>
+          <td class="td" id="shift-content"></td>
+        </tr>
+        <tr>
+          <td colspan="2" style="text-align: center;" class="td">
+            <button id="save-btn" style="width: 12rem;" onclick="saveButtonClicked()" disabled>Save</button>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+  <script>
+    let selectedCity = null;
+    let selectedShop = null;
+    let selectedEmployee = null;
+    let selectedTeam = null;
+    let selectedShift = null;
+
+    let citySelect = document.getElementById('city-select');
+    let shopSelect = document.getElementById('shop-select');
+    let employeeSelect = document.getElementById('employee-select');
+    let teamSelect = document.getElementById('team-select');
+    let shiftSelect = document.getElementById('shift-select');
+
+    let cityContent = document.getElementById('city-content');
+    let shopContent = document.getElementById('shop-content');
+    let employeeContent = document.getElementById('employee-content');
+    let teamContent = document.getElementById('team-content');
+    let shiftContent = document.getElementById('shift-content');
+
+    let saveButton = document.getElementById('save-btn');
+
+    let dataService = new DataService();  
+    let dataStorageService = new DataStorageService();
+    
+    dataService.citiesList().forEach(city => citySelect.add(new Option(city.name, city.id)));
+    dataService.teamsList().forEach(team => teamSelect.add(new Option(team.name, team.id)));
+    dataService.shiftsList().forEach(shift => shiftSelect.add(new Option(shift.name, shift.id)));
+
+    selectCity();
+    
+    function selectCity(cityId) {
+      clearOptions(shopSelect);
+
+      selectedShop = null;
+      shopContent.textContent = "";
+
+      dataService.shopsList(cityId).forEach(shop => shopSelect.add(new Option(shop.name, shop.id)));
+    
+      selectShop(cityId);
+    }
+
+    function selectShop(cityId, shopId) {
+      clearOptions(employeeSelect);
+
+      selectedEmployee = null;
+      employeeContent.textContent = "";
+
+      dataService.employeesList(cityId, shopId).forEach(employee => employeeSelect.add(new Option(employee.name, employee.id)));
+    }
+
+    function citySelectChanged() {
+      let cityId = citySelect.options[citySelect.selectedIndex]?.value;
+
+      selectedCity = dataService.cityById(cityId);
+
+      selectCity(cityId);
+
+      cityContent.textContent = selectedCity?.name;
+
+      checkSaveButton();
+    }
+
+    function shopSelectChanged() {
+      let shopId = shopSelect.options[shopSelect.selectedIndex]?.value;
+
+      selectedShop = dataService.shopById(shopId);
+
+      selectShop(selectedCity?.id, shopId);
+
+      shopContent.textContent = selectedShop?.name;
+
+      checkSaveButton();
+    }
+
+    function employeeSelectChanged() {
+      let employeeId = employeeSelect.options[employeeSelect.selectedIndex]?.value;
+
+      selectedEmployee = dataService.employeeById(employeeId);
+
+      employeeContent.textContent = selectedEmployee?.name;
+
+      checkSaveButton();
+    }
+
+    function teamSelectChanged() {
+      let teamId = teamSelect.options[teamSelect.selectedIndex]?.value;
+
+      selectedTeam = dataService.teamById(teamId);
+
+      teamContent.textContent = selectedTeam?.name;
+
+      checkSaveButton();
+    }
+
+    function shiftSelectChanged() {
+      let shiftId = shiftSelect.options[shiftSelect.selectedIndex]?.value;
+
+      selectedShift = dataService.shiftById(shiftId);
+
+      shiftContent.textContent = selectedShift?.name;
+
+      checkSaveButton();
+    }
+
+    function checkSaveButton() {
+      saveButton.disabled = 
+        !selectedCity ||
+        !selectedShop ||
+        !selectedEmployee ||
+        !selectedTeam ||
+        !selectedShift;
+    }
+
+    function saveButtonClicked() {
+      dataStorageService.save(
+        'data',
+        selectedCity, selectedShop, selectedEmployee,
+        selectedTeam, selectedShift
+      );
+    }
+  </script>
+</body>
+</html>
